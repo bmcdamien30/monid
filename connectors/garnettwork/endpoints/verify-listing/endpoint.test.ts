@@ -9,6 +9,7 @@ import {
 } from "@monid/connector-engine";
 import {
     type Fixture,
+    liveSkip,
     loadFixture,
     runEndpoint,
     testSealedUnit,
@@ -325,4 +326,22 @@ Deno.test("garnettwork: invalid HTTP 200 bodies fail output validation, never be
         );
         assertEquals(error.code, EngineErrorCode.CONTRACT_VIOLATION);
     }
+});
+
+
+Deno.test({
+    name: "garnettwork#verify-listing live (gated on GARNETTWORK_API_KEY)",
+    ignore: liveSkip("garnettwork"),
+    fn: async () => {
+        const result = await runEndpoint({
+            unit: await testSealedUnit(endpointId),
+            input: { body: listingInput },
+            mode: "live",
+        });
+        assertEquals(result.isProviderError, false, JSON.stringify(result.output));
+        const body = result.output as Record<string, Json>;
+        assertEquals(body.schema_version, "garnett-deal-or-disaster-v1");
+        const decision = body.decision as Record<string, Json>;
+        assert(["PASS", "FAIL", "REFUSE"].includes(String(decision.verdict)));
+    },
 });
